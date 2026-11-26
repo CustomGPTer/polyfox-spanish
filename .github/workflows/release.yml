@@ -1,0 +1,29 @@
+# Publishes a release with the app file held on the dist branch.
+# The app file is larger than GitHub allows for one file on a branch, so dist
+# holds it in parts (PolyFox.apk.part-aa, -ab, ...). This joins them, checks the
+# result against PolyFox.apk.sha256 and attaches it to the release.
+# Run it from the Actions tab and give the version, such as 0.3.0.
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, such as 0.3.0
+        required: true
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dist
+      - name: Join the app file and check it
+        run: |
+          cat PolyFox.apk.part-* > PolyFox.apk
+          sha256sum -c PolyFox.apk.sha256
+      - name: Publish the release
+        run: gh release create "v${{ inputs.version }}" PolyFox.apk --target main --title "PolyFox Spanish ${{ inputs.version }}" --notes-file NOTES.md
+        env:
+          GH_TOKEN: ${{ github.token }}
